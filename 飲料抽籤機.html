@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飲料抽籤機 🥤</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #ffb3c6;
+            --bg-color: #fff0f3;
+            --panel-bg: #ffffff;
+            --text-color: #5c4b51;
+            --border-radius: 24px;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Helvetica Neue', Arial, 'LiHei Pro', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+            max-width: 900px;
+            width: 100%;
+            background: transparent;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(255, 179, 198, 0.3);
+            flex: 1;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #ff8fab;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+
+        /* 左側設定區 */
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: transform 0.2s;
+        }
+
+        .checkbox-label:hover {
+            transform: translateX(5px);
+        }
+
+        .checkbox-label input {
+            accent-color: var(--primary-color);
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            border: 2px dashed #ffc2d1;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 1rem;
+            color: var(--text-color);
+            resize: none;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            border-color: #ff8fab;
+        }
+
+        textarea::placeholder {
+            color: #d8c1c6;
+        }
+
+        /* 右側抽籤區 */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slot-machine {
+            width: 100%;
+            height: 150px;
+            background: #fff9fa;
+            border: 4px solid #ffb3c6;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 5px 15px rgba(0,0,0,0.05);
+        }
+
+        .slot-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 3.5s cubic-bezier(0.1, 0.8, 0.1, 1.15);
+        }
+
+        .slot-item {
+            height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ff5c8a;
+            white-space: nowrap;
+        }
+
+        .draw-btn {
+            background: linear-gradient(135deg, #ff8fab, #ffb3c6);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255, 143, 171, 0.4);
+            transition: all 0.2s ease;
+            width: 80%;
+        }
+
+        .draw-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(255, 143, 171, 0.6);
+        }
+
+        .draw-btn:active {
+            transform: translateY(2px);
+        }
+
+        /* 導航按鈕樣式 (薄荷綠可愛風) */
+        .map-btn {
+            display: none;
+            background: linear-gradient(135deg, #a0e8af, #84dcc6);
+            color: #2b7a54;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(132, 220, 198, 0.4);
+            transition: all 0.2s ease;
+            text-decoration: none;
+            text-align: center;
+            width: 80%;
+            box-sizing: border-box;
+            animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .map-btn:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 8px 20px rgba(132, 220, 198, 0.6);
+        }
+
+        @keyframes popUp {
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .error-msg {
+            color: #ff5c8a;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            min-height: 20px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 左側：清單設定 -->
+        <div class="panel left-panel">
+            <h2>✨ 候選飲料店 ✨</h2>
+            
+            <div class="checkbox-group" id="preset-list"></div>
+
+            <h3 style="font-size: 1rem; color: #ff8fab; margin-top: 25px;">自訂新增 (一行一間)</h3>
+            <textarea id="custom-list" placeholder="例如：&#10;一沐日&#10;清心福全"></textarea>
+        </div>
+
+        <!-- 右側：抽籤機台 -->
+        <div class="panel right-panel">
+            <h2>🎰 今天喝哪家？ 🎰</h2>
+            
+            <div class="slot-machine">
+                <div class="slot-content" id="slot-content">
+                    <div class="slot-item">準備抽籤</div>
+                </div>
+            </div>
+
+            <button class="draw-btn" id="draw-btn" onclick="startDraw()">馬上抽一波！</button>
+            
+            <!-- 隱藏的導航按鈕，抽完才會出現 -->
+            <a href="#" target="_blank" class="map-btn" id="map-btn">🗺️ 帶我去最近的店</a>
+
+            <div class="error-msg" id="error-msg"></div>
+        </div>
+    </div>
+
+    <script>
+        const defaultShops = ["50嵐", "UG樂己", "八曜和茶", "茶之魔手", "CoCo都可"];
+        const slotContent = document.getElementById("slot-content");
+        const customListInput = document.getElementById("custom-list");
+        const errorMsg = document.getElementById("error-msg");
+        const drawBtn = document.getElementById("draw-btn");
+        const mapBtn = document.getElementById("map-btn");
+        let isDrawing = false;
+
+        function init() {
+            const presetContainer = document.getElementById("preset-list");
+            const savedChecks = JSON.parse(localStorage.getItem("rue_checked_shops")) || {};
+            
+            defaultShops.forEach((shop) => {
+                const isChecked = savedChecks[shop] !== undefined ? savedChecks[shop] : true;
+                const label = document.createElement("label");
+                label.className = "checkbox-label";
+                label.innerHTML = `
+                    <input type="checkbox" value="${shop}" ${isChecked ? "checked" : ""} onchange="saveData()">
+                    ${shop}
+                `;
+                presetContainer.appendChild(label);
+            });
+
+            const savedCustom = localStorage.getItem("rue_custom_shops");
+            if (savedCustom) {
+                customListInput.value = savedCustom;
+            }
+
+            customListInput.addEventListener("input", saveData);
+        }
+
+        function saveData() {
+            const checkboxes = document.querySelectorAll("#preset-list input[type='checkbox']");
+            const checkData = {};
+            checkboxes.forEach(cb => {
+                checkData[cb.value] = cb.checked;
+            });
+            localStorage.setItem("rue_checked_shops", JSON.stringify(checkData));
+            localStorage.setItem("rue_custom_shops", customListInput.value);
+        }
+
+        function getActiveShops() {
+            const shops = [];
+            document.querySelectorAll("#preset-list input[type='checkbox']:checked").forEach(cb => {
+                shops.push(cb.value);
+            });
+            const customShops = customListInput.value.split('\n')
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+            return [...shops, ...customShops];
+        }
+
+        function startDraw() {
+            if (isDrawing) return;
+            
+            const shops = getActiveShops();
+            errorMsg.innerText = "";
+            mapBtn.style.display = "none"; // 抽籤時先隱藏導航按鈕
+
+            if (shops.length < 2) {
+                errorMsg.innerText = "⚠️ 至少要有兩間店才能抽籤唷！";
+                return;
+            }
+
+            isDrawing = true;
+            drawBtn.style.opacity = "0.7";
+            drawBtn.innerText = "轉動中...";
+
+            const winnerIndex = Math.floor(Math.random() * shops.length);
+            const winner = shops[winnerIndex];
+
+            slotContent.innerHTML = "";
+            slotContent.style.transition = "none";
+            slotContent.style.transform = "translateY(0)";
+
+            const rollItems = [];
+            for (let i = 0; i < 20; i++) {
+                rollItems.push(shops[Math.floor(Math.random() * shops.length)]);
+            }
+            rollItems.push(winner);
+
+            rollItems.forEach(shopName => {
+                const div = document.createElement("div");
+                div.className = "slot-item";
+                div.innerText = shopName;
+                slotContent.appendChild(div);
+            });
+
+            slotContent.offsetHeight; 
+
+            const itemHeight = 150;
+            const targetY = -(rollItems.length - 1) * itemHeight;
+            
+            slotContent.style.transition = "transform 3.5s cubic-bezier(0.1, 0.8, 0.1, 1.15)";
+            slotContent.style.transform = `translateY(${targetY}px)`;
+
+            setTimeout(() => {
+                isDrawing = false;
+                drawBtn.style.opacity = "1";
+                drawBtn.innerText = "再來抽一次！";
+                
+                // 設定導航按鈕的網址並顯示
+                // 使用 Google 地圖的路徑規劃參數 dir/?api=1&destination=店名
+                const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(winner)}`;
+                mapBtn.href = mapUrl;
+                mapBtn.innerText = `🗺️ 帶我去最近的 ${winner}`;
+                mapBtn.style.display = "block";
+                
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#ff8fab', '#ffb3c6', '#ffc2d1', '#ffe5ec', '#fb6f92']
+                });
+            }, 3500);
+        }
+
+        init();
+    </script>
+</body>
+</html>
